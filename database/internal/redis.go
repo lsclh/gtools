@@ -3,8 +3,8 @@ package internal
 import (
 	"context"
 	"fmt"
-	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/redis/go-redis/v9"
+	"strings"
 )
 
 const (
@@ -44,7 +44,7 @@ func (ROptions) Init() {
 	case RedisMethodFailover:
 		Client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    ropt.Master,
-			SentinelAddrs: gstr.Split(ropt.Host, ","),
+			SentinelAddrs: strings.Split(ropt.Host, ","),
 			Password:      ropt.Pwd,
 			DB:            ropt.Db,
 			MinIdleConns:  10,
@@ -52,7 +52,7 @@ func (ROptions) Init() {
 		})
 	case RedisMethodCluster:
 		Client = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:        gstr.Split(ropt.Host, ","),
+			Addrs:        strings.Split(ropt.Host, ","),
 			Password:     ropt.Pwd,
 			MinIdleConns: 10,
 			PoolSize:     300,

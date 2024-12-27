@@ -55,23 +55,24 @@ type LogInitInterface interface {
 	Init(file *LogFile)
 }
 
-func Initlog(logs ...LogInitInterface) {
-	for _, val := range logs {
-		f, s := val.GetConfig()
-		fio := getWriter(f, s)
-		z := NewZapLogger(fio, val.GetFormat())
-		val.Init(&LogFile{
-			Fio:  fio,
-			Z:    z,
-			sync: z.Sync,
-		})
+func NewLog(save int, fileName, format string) *LogFile {
+	fio := getWriter(fileName, save)
+	z := NewZapLogger(fio, format)
+	return &LogFile{
+		fio:  fio,
+		Z:    z,
+		sync: z.Sync,
 	}
 }
 
 type LogFile struct {
-	Fio  io.Writer
+	fio  io.Writer
 	Z    *zap.SugaredLogger
 	sync func() error
+}
+
+func (f *LogFile) Fio() io.Writer {
+	return f.fio
 }
 
 // Debug uses fmt.Sprintf to log a templated message.

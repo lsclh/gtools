@@ -6,19 +6,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cnf any = nil
-
-func SetConfig(ptr any) {
-	cnf = ptr
-}
-
-func SetUp() {
+func SetUp(ptr any) {
 	internal.Run()
-	if err := viper.Unmarshal(cnf); err != nil {
+	if err := viper.Unmarshal(ptr); err != nil {
 		internal.Println("配置文件解析错误: %s", err.Error())
 		return
 	}
 
-	d, _ := json.Marshal(cnf)
+	d, _ := json.Marshal(ptr)
 	internal.Println("配置文件读取成功 %s", string(d))
 }
