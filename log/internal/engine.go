@@ -7,28 +7,9 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"time"
 )
-
-func init() {
-	if opt == nil {
-		opt = new(Options)
-	}
-
-	opt.Dir = dir() + pathSep + "logs"
-	opt.Debug = false
-}
-
-func dir() string {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("无法获取调用者信息")
-	}
-	projectDir := filepath.Dir(filename)
-	return projectDir
-}
 
 // var blog *logs.BeeLogger
 var (
@@ -49,13 +30,13 @@ func New(o *Options) {
 	opt = o
 }
 
-type LogInitInterface interface {
-	GetConfig() (file string, saveDay int)
-	GetFormat() string
-	Init(file *LogFile)
-}
-
 func NewLog(save int, fileName, format string) *LogFile {
+	if opt == nil {
+		opt = &Options{
+			Debug: false,
+			Dir:   "./logs",
+		}
+	}
 	fio := getWriter(fileName, save)
 	z := NewZapLogger(fio, format)
 	return &LogFile{
@@ -129,24 +110,24 @@ func (l *LogFile) Printf(format string, params ...interface{}) {
 // NewZapLogger 创建 ZapLogger
 func NewZapLogger(f io.Writer, format string) *zap.SugaredLogger {
 	// 动态日志等级
-	w := zapcore.AddSync(f)
-
 	//文件+控制台
 	var core zapcore.Core
 	if opt.Debug {
+		w := zapcore.AddSync(f)
 		if format == "json" {
 			core = zapcore.NewTee(
-				zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), os.Stdout, zap.DebugLevel),
-				//zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig()), w, zap.DebugLevel),
+				zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel),
+				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zap.DebugLevel),
 			)
 		} else {
 			core = zapcore.NewTee(
 				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel),
-				//zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig()), w, zap.DebugLevel),
+				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zap.DebugLevel),
 			)
 		}
 
 	} else {
+		w := zapcore.AddSync(f)
 		if format == "json" {
 			core = zapcore.NewTee(
 				zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), w, zapcore.InfoLevel),

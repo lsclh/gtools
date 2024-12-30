@@ -1,12 +1,7 @@
-// Copyright GoFrame Author(https://goframe.org). All Rights Reserved.
-//
-// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file,
-// You can obtain one at https://github.com/gogf/gf.
-
 package gtype
 
 import (
+	"github.com/spf13/cast"
 	"strconv"
 	"sync/atomic"
 )
@@ -55,6 +50,23 @@ func (v *Int) Cas(old, new int) (swapped bool) {
 // String implements String interface for string printing.
 func (v *Int) String() string {
 	return strconv.Itoa(v.Val())
+}
+
+// MarshalJSON implements the interface MarshalJSON for json.Marshal.
+func (v Int) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Itoa(v.Val())), nil
+}
+
+// UnmarshalJSON implements the interface UnmarshalJSON for json.Unmarshal.
+func (v *Int) UnmarshalJSON(b []byte) error {
+	v.Set(cast.ToInt(string(b)))
+	return nil
+}
+
+// UnmarshalValue is an interface implement which sets any type of value for `v`.
+func (v *Int) UnmarshalValue(value interface{}) error {
+	v.Set(cast.ToInt(value))
+	return nil
 }
 
 // DeepCopy implements interface for deep copy of current type.

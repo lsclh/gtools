@@ -7,6 +7,13 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const (
+	DbLogDebug = logger.Silent
+	DbLogError = logger.Error
+	DbLogWarn  = logger.Warn
+	DbLogInfo  = logger.Info
+)
+
 // 获取一个任务对象 并创建添加任务
 func NewDb(opts ...mOptions) *gorm.DB {
 	opt := &internal.MOptions{

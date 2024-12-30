@@ -1,12 +1,8 @@
-// Copyright GoFrame Author(https://goframe.org). All Rights Reserved.
-//
-// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file,
-// You can obtain one at https://github.com/gogf/gf.
-
 package gtype
 
 import (
+	"bytes"
+	"github.com/spf13/cast"
 	"sync/atomic"
 )
 
@@ -14,6 +10,11 @@ import (
 type Bool struct {
 	value int32
 }
+
+var (
+	bytesTrue  = []byte("true")
+	bytesFalse = []byte("false")
+)
 
 // NewBool creates and returns a concurrent-safe object for bool type,
 // with given initial value `value`.
@@ -67,6 +68,26 @@ func (v *Bool) String() string {
 		return "true"
 	}
 	return "false"
+}
+
+// MarshalJSON implements the interface MarshalJSON for json.Marshal.
+func (v Bool) MarshalJSON() ([]byte, error) {
+	if v.Val() {
+		return bytesTrue, nil
+	}
+	return bytesFalse, nil
+}
+
+// UnmarshalJSON implements the interface UnmarshalJSON for json.Unmarshal.
+func (v *Bool) UnmarshalJSON(b []byte) error {
+	v.Set(cast.ToBool(bytes.Trim(b, `"`)))
+	return nil
+}
+
+// UnmarshalValue is an interface implement which sets any type of value for `v`.
+func (v *Bool) UnmarshalValue(value interface{}) error {
+	v.Set(cast.ToBool(value))
+	return nil
 }
 
 // DeepCopy implements interface for deep copy of current type.
