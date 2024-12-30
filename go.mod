@@ -2,8 +2,6 @@ module github.com/lsclh/gtools
 
 go 1.21
 
-toolchain go1.23.3
-
 require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible

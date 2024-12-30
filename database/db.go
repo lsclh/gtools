@@ -2,17 +2,22 @@ package database
 
 import (
 	"github.com/lsclh/gtools/database/internal"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 // 获取一个任务对象 并创建添加任务
-func NewDb(opts ...mOptions) *internal.MOptions {
-	opt := &internal.MOptions{}
+func NewDb(opts ...mOptions) *gorm.DB {
+	opt := &internal.MOptions{
+		PollMinConns: 5,
+		PollMaxOpen:  10,
+	}
 	for _, fn := range opts {
 		fn(opt)
 	}
 
-	return internal.NewDb(opt)
+	return internal.NewMDb(opt)
 }
 
 const (
@@ -21,19 +26,17 @@ const (
 	RDbMethodFailover = "failover" //redis哨兵
 )
 
-func NewRDb(method string, opts ...rOptions) *internal.ROptions {
+func NewRDb(method string, opts ...rOptions) redis.Cmdable {
 	opt := &internal.ROptions{
-		Method: method,
+		Method:       method,
+		MinIdleConns: 10,
+		PoolSize:     300,
 	}
 	for _, fn := range opts {
 		fn(opt)
 	}
 
 	return internal.NewRdb(opt)
-}
-
-func SetLog(l internal.Log) {
-	internal.SetLog(l)
 }
 
 // **********************************************注册参数**********************************************************
@@ -103,3 +106,37 @@ func RDbWithMaster(name string) rOptions {
 }
 
 //**********************************************注册参数**********************************************************
+
+//func NewODb(opts ...oOptions) *gorm.DB {
+//	opt := &internal.OOptions{}
+//	for _, fn := range opts {
+//		fn(opt)
+//	}
+//
+//	return internal.NewODb(opt)
+//}
+//type oOptions func(e *internal.OOptions)
+//
+//func ODbWithBase(host string, port int, user, pwd, dbname string) oOptions {
+//	return func(e *internal.OOptions) {
+//		e.Host = host
+//		e.Port = port
+//		e.User = user
+//		e.Pass = pwd
+//		e.Dbname = dbname
+//	}
+//}
+//func ODbWithConn(PollMaxOpen, PollMinConns int) oOptions {
+//	return func(e *internal.OOptions) {
+//		e.PollMinConns = PollMinConns
+//		e.PollMaxOpen = PollMaxOpen
+//	}
+//}
+//func ODbWithLog(level logger.LogLevel, std logger.Writer) oOptions {
+//	return func(e *internal.OOptions) {
+//		e.Log = &internal.MOptionLog{
+//			Level: level,
+//			Std:   std,
+//		}
+//	}
+//}

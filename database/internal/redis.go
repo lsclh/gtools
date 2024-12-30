@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	gLog "github.com/lsclh/gtools/log"
 	"github.com/redis/go-redis/v9"
 	"strings"
 )
@@ -16,30 +17,35 @@ const (
 var Client redis.Cmdable
 
 type ROptions struct {
-	Method string `json:"method"`
-	Master string `json:"master"`
-	Host   string `json:"host"`
-	Pwd    string `json:"pwd"`
-	Db     int    `json:"db"`
+	Method       string `json:"method"`
+	Master       string `json:"master"`
+	Host         string `json:"host"`
+	Pwd          string `json:"pwd"`
+	Db           int    `json:"db"`
+	MinIdleConns int    `json:"minIdleConns"`
+	PoolSize     int    `json:"pool_size"`
 }
 
 var ropt *ROptions = nil
 
-func NewRdb(o *ROptions) *ROptions {
+func NewRdb(o *ROptions) redis.Cmdable {
 	ropt = o
-	return ropt
+	if Client == nil {
+		return rdbInit()
+	}
+	return Client
 }
 
-func (ROptions) Init() {
+func rdbInit() redis.Cmdable {
 	ctx := context.Background()
 	switch ropt.Method {
 	case RedisMethodOne:
 		Client = redis.NewClient(&redis.Options{
-			Addr:         ropt.Host, //链接地址
-			Password:     ropt.Pwd,  //密码
-			DB:           ropt.Db,   //选择的db
-			MinIdleConns: 10,        //最小维持连接数
-			PoolSize:     300,       //连接池大小 6倍cpu核心数
+			Addr:         ropt.Host,         //链接地址
+			Password:     ropt.Pwd,          //密码
+			DB:           ropt.Db,           //选择的db
+			MinIdleConns: ropt.MinIdleConns, //最小维持连接数
+			PoolSize:     ropt.PoolSize,     //连接池大小 6倍cpu核心数
 		})
 	case RedisMethodFailover:
 		Client = redis.NewFailoverClient(&redis.FailoverOptions{
@@ -47,22 +53,23 @@ func (ROptions) Init() {
 			SentinelAddrs: strings.Split(ropt.Host, ","),
 			Password:      ropt.Pwd,
 			DB:            ropt.Db,
-			MinIdleConns:  10,
-			PoolSize:      300,
+			MinIdleConns:  ropt.MinIdleConns,
+			PoolSize:      ropt.PoolSize,
 		})
 	case RedisMethodCluster:
 		Client = redis.NewClusterClient(&redis.ClusterOptions{
 			Addrs:        strings.Split(ropt.Host, ","),
 			Password:     ropt.Pwd,
-			MinIdleConns: 10,
-			PoolSize:     300,
+			MinIdleConns: ropt.MinIdleConns,
+			PoolSize:     ropt.PoolSize,
 		})
 
 	}
 	if _, err := Client.Ping(ctx).Result(); err != nil {
 		panic(fmt.Sprintf("RedisConnectError: %s", err.Error()))
+		return nil
 	}
 
-	logger.println("RedisConnectSuccess")
-
+	gLog.Println("RedisConnectSuccess")
+	return Client
 }
