@@ -38,12 +38,12 @@ func (r *RedisLoopLock) Unlock() bool {
 	if r.cancel != nil {
 		r.cancel()
 	}
-	_, err := rdb.Del(r.name)
+	_, err := rdbClient.Del(r.name)
 	return err == nil
 }
 
 func (r *RedisLoopLock) lock() bool {
-	ok, err := rdb.SetNX(r.name, r.key, time.Second*15)
+	ok, err := rdbClient.SetNX(r.name, r.key, time.Second*15)
 	if err == nil && ok {
 		signal := make(chan struct{})
 		go r.loop(signal)
@@ -54,7 +54,7 @@ func (r *RedisLoopLock) lock() bool {
 	if r.key == "" {
 		return false
 	}
-	key, _, _ := rdb.Get(r.name)
+	key, _, _ := rdbClient.Get(r.name)
 	return key == r.key
 }
 
@@ -72,7 +72,7 @@ func (r *RedisLoopLock) loop(signal chan struct{}) {
 	for {
 		select {
 		case <-t.C:
-			if ok, err := rdb.Expire(r.name, time.Second*15); err != nil || !ok {
+			if ok, err := rdbClient.Expire(r.name, time.Second*15); err != nil || !ok {
 				r.cancel()
 			}
 		case <-r.ctx.Done():

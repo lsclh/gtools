@@ -35,7 +35,7 @@ func (l *RedisTimeLock) TryLock() bool {
 }
 
 func (l *RedisTimeLock) lock() bool {
-	ok, err := rdb.SetNX(l.name, l.key, l.ttl)
+	ok, err := rdbClient.SetNX(l.name, l.key, l.ttl)
 	if err == nil && ok {
 		return true
 	}
@@ -43,11 +43,11 @@ func (l *RedisTimeLock) lock() bool {
 		return false
 	}
 
-	res, _, _ := rdb.Get(l.name)
+	res, _, _ := rdbClient.Get(l.name)
 	if res == l.key {
 		// 是本次设置的锁 更新锁过期时间ttl
 		if l.ttl > 0 {
-			rdb.Expire(l.name, l.ttl)
+			rdbClient.Expire(l.name, l.ttl)
 		}
 		//这个地方返回true会导致本机不会锁住
 		return true
@@ -56,7 +56,7 @@ func (l *RedisTimeLock) lock() bool {
 }
 
 func (l *RedisTimeLock) unlock() bool {
-	oldVal, b, err := rdb.Get(l.name)
+	oldVal, b, err := rdbClient.Get(l.name)
 	if err != nil { //redis操作失败解锁失败
 		return false
 	}
@@ -66,7 +66,7 @@ func (l *RedisTimeLock) unlock() bool {
 	// 不是本次设置的锁 解锁失败
 	if oldVal == l.key || oldVal == "" {
 		// 是本次设置的锁 删除key
-		_, err = rdb.Del(l.name)
+		_, err = rdbClient.Del(l.name)
 		return err == nil //reids操作成功解锁成功
 	}
 	return false
