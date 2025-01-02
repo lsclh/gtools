@@ -1,6 +1,63 @@
 package rLock
 
-import "time"
+import (
+	"sync"
+	"time"
+)
+
+type factory struct{}
+
+var Factory = factory{}
+
+func (f factory) NewNullLock() *NullLock {
+	return &NullLock{}
+}
+
+// NewRedisLoopLocker 获取一个RedisMutex锁 可应用于集群
+// 特性:
+//  1. 同name 同key 不同的对象也可上锁成功 比如 key传机器码 同name当前机器各处都可以加锁成功 其他机器无法加锁成功
+//     key传空表示不使用此功能
+//  2. 不解锁不会进行自动释放 将永远锁死
+//
+// lName 锁名称 key 标记符 rdb redis操作连接对象
+
+func (f factory) NewRedisLoopLocker(lName string, key string) *RedisLoopLock {
+	r := &RedisLoopLock{
+		name: "lLock:" + lName,
+		key:  key,
+	}
+	return r
+}
+
+// NewRedisTimeLocker 获取一个RedisMutex锁 可应用于集群
+// 特性:
+//  1. 同name 同key 不同的对象也可上锁成功
+//     比如 key传机器码 同name当前机器各处都可以加锁成功且会延长过期时间 其他机器无法加锁成功
+//  2. 同name 不同key 无法解锁成功
+//  3. key传空表示不使用1,2功能
+//  4. 不解锁到期将进行自动释放 使用时慎重
+//
+// lName 锁名称 key 标记符 rdb redis操作连接对象
+func (f factory) NewRedisTimeLocker(lName, key string, ttl time.Duration) *RedisTimeLock {
+	lock := &RedisTimeLock{
+		name:    "tLock:" + lName,
+		ttl:     ttl,
+		backoff: time.Millisecond * 500,
+		key:     key,
+		mux:     new(sync.Mutex),
+	}
+	return lock
+}
+
+type engine struct{}
+
+var Engine = &engine{}
+
+func (engine) RegRds(r rds) {
+	if rdbClient == nil {
+		rdbClient = r
+	}
+}
 
 // 锁模版
 type Mutex interface {
@@ -13,7 +70,7 @@ type Mutex interface {
 }
 
 // redis操作接口
-type Rds interface {
+type rds interface {
 	//return true成功(说明没值写入成功) false=失败(说明有值写入失败)
 	SetNX(key string, value interface{}, expiration time.Duration) (bool, error)
 	//return false失败(说明没值无需删除) true成功(说明有值并删除了)
@@ -24,10 +81,4 @@ type Rds interface {
 	Expire(key string, expiration time.Duration) (bool, error)
 }
 
-var rdb Rds = nil
-
-func SetRds(r Rds) {
-	if rdb == nil {
-		rdb = r
-	}
-}
+var rdbClient rds = nil

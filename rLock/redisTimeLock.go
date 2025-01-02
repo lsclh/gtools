@@ -5,26 +5,6 @@ import (
 	"time"
 )
 
-// NewRedisTimeLocker 获取一个RedisMutex锁 可应用于集群
-// 特性:
-//  1. 同name 同key 不同的对象也可上锁成功
-//     比如 key传机器码 同name当前机器各处都可以加锁成功且会延长过期时间 其他机器无法加锁成功
-//  2. 同name 不同key 无法解锁成功
-//  3. key传空表示不使用1,2功能
-//  4. 不解锁到期将进行自动释放 使用时慎重
-//
-// lName 锁名称 key 标记符 rdb redis操作连接对象
-func NewRedisTimeLocker(lName, key string, ttl time.Duration) *RedisTimeLock {
-	lock := &RedisTimeLock{
-		name:    "tLock:" + lName,
-		ttl:     ttl,
-		backoff: time.Millisecond * 500,
-		key:     key,
-		mux:     new(sync.Mutex),
-	}
-	return lock
-}
-
 type RedisTimeLock struct {
 	name    string
 	backoff time.Duration

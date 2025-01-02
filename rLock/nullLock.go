@@ -1,9 +1,5 @@
 package rLock
 
-func NewNullLock() *NullLock {
-	return &NullLock{}
-}
-
 type NullLock struct{}
 
 func (r *NullLock) TryLock() bool {

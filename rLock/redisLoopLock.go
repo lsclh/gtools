@@ -7,21 +7,6 @@ import (
 	"time"
 )
 
-// NewRedisLoopLocker 获取一个RedisMutex锁 可应用于集群
-// 特性:
-//  1. 同name 同key 不同的对象也可上锁成功 比如 key传机器码 同name当前机器各处都可以加锁成功 其他机器无法加锁成功
-//     key传空表示不使用此功能
-//  2. 不解锁不会进行自动释放 将永远锁死
-//
-// lName 锁名称 key 标记符 rdb redis操作连接对象
-func NewRedisLoopLocker(lName string, key string) *RedisLoopLock {
-	r := &RedisLoopLock{
-		name: "lLock:" + lName,
-		key:  key,
-	}
-	return r
-}
-
 type RedisLoopLock struct {
 	l      sync.Mutex
 	name   string

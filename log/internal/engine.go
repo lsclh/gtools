@@ -19,26 +19,9 @@ var (
 	pathSep = string(os.PathSeparator)
 )
 
-type Options struct {
-	Debug bool
-	Dir   string
-}
-
-var opt *Options = nil
-
-func New(o *Options) {
-	opt = o
-}
-
-func NewLog(save int, fileName, format string) *LogFile {
-	if opt == nil {
-		opt = &Options{
-			Debug: false,
-			Dir:   "./logs",
-		}
-	}
-	fio := getWriter(fileName, save)
-	z := NewZapLogger(fio, format)
+func NewLog(debug bool, save int, fileName, dir, format string) *LogFile {
+	fio := getWriter(fileName, dir, save)
+	z := NewZapLogger(debug, fio, format)
 	return &LogFile{
 		fio:  fio,
 		Z:    z,
@@ -108,11 +91,11 @@ func (l *LogFile) Printf(format string, params ...interface{}) {
 }
 
 // NewZapLogger 创建 ZapLogger
-func NewZapLogger(f io.Writer, format string) *zap.SugaredLogger {
+func NewZapLogger(debug bool, f io.Writer, format string) *zap.SugaredLogger {
 	// 动态日志等级
 	//文件+控制台
 	var core zapcore.Core
-	if opt.Debug {
+	if debug {
 		w := zapcore.AddSync(f)
 		if format == "json" {
 			core = zapcore.NewTee(
@@ -174,11 +157,11 @@ func NewEncoderConfig(color bool) zapcore.EncoderConfig {
 }
 
 // 按时间划分
-func getWriter(filename string, saveTime int) io.Writer {
+func getWriter(filename, dir string, saveTime int) io.Writer {
 	// 生成rotatelogs的Logger 实际生成的文件名 demo.log.YYmmddHH
 	// demo.log是指向最新日志的链接
 	// 保存7天内的日志，每1小时(整点)分割一次日志
-	output_dir := opt.Dir + pathSep
+	output_dir := dir + pathSep
 	hook, err := rotatelogs.New(
 		// 没有使用go风格反人类的format格式
 		output_dir+filename+".%Y_%m_%d",
