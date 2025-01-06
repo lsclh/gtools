@@ -2,10 +2,22 @@ package log
 
 import (
 	"github.com/lsclh/gtools/log/internal"
+	"go.uber.org/zap"
+	"io"
 )
 
-type Logger struct {
-	*internal.LogFile
+type Logger interface {
+	Fio() io.Writer
+	Debug(format string, args ...any)
+	Info(format string, args ...any)
+	Warn(format string, args ...any)
+	Error(format string, args ...any)
+	Debugw(msg string, keysAndValues ...any)
+	Infow(msg string, keysAndValues ...any)
+	Warnw(msg string, keysAndValues ...any)
+	Errorw(msg string, keysAndValues ...any)
+	Printf(format string, params ...any)
+	Zap() *zap.SugaredLogger
 }
 
 var Factory = &factory{
@@ -13,7 +25,7 @@ var Factory = &factory{
 }
 
 // Println 控制台输出(生产模式不记录文件 正常输出控制台)
-func Println(format string, v ...interface{}) {
+func Println(format string, v ...any) {
 	internal.Println(format, v...)
 }
 
@@ -56,10 +68,8 @@ func (o *factory) WithFormatText() *factory {
 func (o *factory) WithFileName(name string) *factory {
 	return o.clone().cnf.saveName(name)
 }
-func (o *factory) New() *Logger {
-	return &Logger{
-		internal.NewLog(o.cnf.debug, o.cnf.save, o.cnf.name, o.cnf.dir, o.cnf.format),
-	}
+func (o *factory) New() Logger {
+	return internal.NewLog(o.cnf.debug, o.cnf.save, o.cnf.name, o.cnf.dir, o.cnf.format)
 }
 
 type factory struct {

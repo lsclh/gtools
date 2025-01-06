@@ -35,6 +35,10 @@ type LogFile struct {
 	sync func() error
 }
 
+func (f *LogFile) Zap() *zap.SugaredLogger {
+	return f.Z
+}
+
 func (f *LogFile) Fio() io.Writer {
 	return f.fio
 }
