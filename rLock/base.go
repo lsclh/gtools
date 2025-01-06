@@ -5,12 +5,23 @@ import (
 	"time"
 )
 
+var Factory = factory{}
+var Engine = &engine{}
+
+// 锁模版
+type Mutex interface {
+	//TryLock 尝试加锁 成功返回true 失败返回false
+	TryLock() bool
+	//Lock 尝试加锁 成功往下执行 失败阻塞自旋
+	Lock()
+	//Unlock 解锁
+	Unlock() bool
+}
+
 type factory struct{}
 
-var Factory = factory{}
-
-func (f factory) NewNullLock() *NullLock {
-	return &NullLock{}
+func (f factory) NewNullLock() Mutex {
+	return &nullLock{}
 }
 
 // NewRedisLoopLocker 获取一个RedisMutex锁 可应用于集群
@@ -20,13 +31,11 @@ func (f factory) NewNullLock() *NullLock {
 //  2. 不解锁不会进行自动释放 将永远锁死
 //
 // lName 锁名称 key 标记符 rdb redis操作连接对象
-
-func (f factory) NewRedisLoopLocker(lName string, key string) *RedisLoopLock {
-	r := &RedisLoopLock{
+func (f factory) NewRedisLoopLocker(lName string, key string) Mutex {
+	return &redisLoopLock{
 		name: "lLock:" + lName,
 		key:  key,
 	}
-	return r
 }
 
 // NewRedisTimeLocker 获取一个RedisMutex锁 可应用于集群
@@ -38,35 +47,22 @@ func (f factory) NewRedisLoopLocker(lName string, key string) *RedisLoopLock {
 //  4. 不解锁到期将进行自动释放 使用时慎重
 //
 // lName 锁名称 key 标记符 rdb redis操作连接对象
-func (f factory) NewRedisTimeLocker(lName, key string, ttl time.Duration) *RedisTimeLock {
-	lock := &RedisTimeLock{
+func (f factory) NewRedisTimeLocker(lName, key string, ttl time.Duration) Mutex {
+	return &redisTimeLock{
 		name:    "tLock:" + lName,
 		ttl:     ttl,
 		backoff: time.Millisecond * 500,
 		key:     key,
 		mux:     new(sync.Mutex),
 	}
-	return lock
 }
 
 type engine struct{}
-
-var Engine = &engine{}
 
 func (engine) RegRds(r rds) {
 	if rdbClient == nil {
 		rdbClient = r
 	}
-}
-
-// 锁模版
-type Mutex interface {
-	//TryLock 尝试加锁 成功返回true 失败返回false
-	TryLock() bool
-	//Lock 尝试加锁 成功往下执行 失败阻塞自旋
-	Lock()
-	//Unlock 解锁
-	Unlock() bool
 }
 
 // redis操作接口

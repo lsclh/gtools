@@ -1,15 +1,15 @@
 package rLock
 
-type NullLock struct{}
+type nullLock struct{}
 
-func (r *NullLock) TryLock() bool {
+func (r *nullLock) TryLock() bool {
 	return true
 }
 
-func (r *NullLock) Lock() {
+func (r *nullLock) Lock() {
 	return
 }
 
-func (r *NullLock) Unlock() bool {
+func (r *nullLock) Unlock() bool {
 	return true
 }

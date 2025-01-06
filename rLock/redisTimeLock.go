@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type RedisTimeLock struct {
+type redisTimeLock struct {
 	name    string
 	backoff time.Duration
 	ttl     time.Duration
@@ -13,7 +13,7 @@ type RedisTimeLock struct {
 	mux     *sync.Mutex
 }
 
-func (l *RedisTimeLock) Lock() {
+func (l *redisTimeLock) Lock() {
 	for {
 		if l.TryLock() {
 			return
@@ -22,19 +22,19 @@ func (l *RedisTimeLock) Lock() {
 	}
 }
 
-func (l *RedisTimeLock) Unlock() bool {
+func (l *redisTimeLock) Unlock() bool {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 	return l.unlock()
 }
 
-func (l *RedisTimeLock) TryLock() bool {
+func (l *redisTimeLock) TryLock() bool {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 	return l.lock()
 }
 
-func (l *RedisTimeLock) lock() bool {
+func (l *redisTimeLock) lock() bool {
 	ok, err := rdbClient.SetNX(l.name, l.key, l.ttl)
 	if err == nil && ok {
 		return true
@@ -55,7 +55,7 @@ func (l *RedisTimeLock) lock() bool {
 	return false
 }
 
-func (l *RedisTimeLock) unlock() bool {
+func (l *redisTimeLock) unlock() bool {
 	oldVal, b, err := rdbClient.Get(l.name)
 	if err != nil { //redis操作失败解锁失败
 		return false
