@@ -23,7 +23,7 @@ var Engine = &engine{
 
 // 启动master节点判断
 func (e *engine) Start() {
-	e.lock = rLock.NewRedisTimeLocker(masterKey, uuid.NewV4().String(), time.Second*11)
+	e.lock = rLock.Factory.NewRedisTimeLocker(masterKey, uuid.NewV4().String(), time.Second*11)
 	//从服务器 10秒检测一次
 	go func() {
 		defer func() {
@@ -77,7 +77,7 @@ func (e *engine) RegLog(lg log) *engine {
 }
 
 func (e *engine) RegRds(r rds) *engine {
-	rLock.SetRds(r)
+	rLock.Engine.RegRds(r)
 	return e
 }
 
