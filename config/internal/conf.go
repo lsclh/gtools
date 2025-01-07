@@ -9,7 +9,13 @@ import (
 
 // 是否使用内网配置，不使用配置文件
 
-func Run() {
+func Run(fileName string, fileExt string) {
+	if fileName == "" {
+		fileName = "config"
+	}
+	if fileExt == "" {
+		fileExt = "yaml"
+	}
 	//加载配置文件
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
