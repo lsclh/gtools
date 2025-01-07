@@ -106,7 +106,7 @@ func NewZapLogger(outfile, outstd bool, f io.Writer, format string, skip int) *z
 
 	if format == "json" {
 		if outstd {
-			cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel))
+			cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), os.Stdout, zap.DebugLevel))
 		}
 		if outfile {
 			cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), w, zap.DebugLevel))
