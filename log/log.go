@@ -36,22 +36,24 @@ func (o *factory) clone() *factory {
 	}
 	opt := &factory{
 		cnf: &cnf{
-			debug:  false,
-			dir:    "./logs",
-			save:   3,
-			format: "text",
-			name:   "log.log",
+			outFile: false,
+			outStd:  true,
+			dir:     "./logs",
+			save:    3,
+			format:  "text",
+			name:    "log.log",
+			skip:    1,
 		},
 	}
 	opt.cnf.opt = opt
 	return opt
 }
 
-func (o *factory) WithModeDebug() *factory {
-	return o.clone().cnf.saveMode(true)
+func (o *factory) WithOutfile(out bool) *factory {
+	return o.clone().cnf.saveOutFile(out)
 }
-func (o *factory) WithModeRelease() *factory {
-	return o.clone().cnf.saveMode(false)
+func (o *factory) WithOutstd(out bool) *factory {
+	return o.clone().cnf.saveOutStd(out)
 }
 func (o *factory) WithSaveDir(logPath string) *factory {
 	return o.clone().cnf.saveDir(logPath)
@@ -68,8 +70,11 @@ func (o *factory) WithFormatText() *factory {
 func (o *factory) WithFileName(name string) *factory {
 	return o.clone().cnf.saveName(name)
 }
+func (o *factory) AddCallerSkip(skip int) *factory {
+	return o.clone().cnf.saveSkip(skip)
+}
 func (o *factory) New() Logger {
-	return internal.NewLog(o.cnf.debug, o.cnf.save, o.cnf.name, o.cnf.dir, o.cnf.format)
+	return internal.NewLog(o.cnf.outFile, o.cnf.outStd, o.cnf.save, o.cnf.name, o.cnf.dir, o.cnf.format, o.cnf.skip)
 }
 
 type factory struct {
@@ -77,16 +82,22 @@ type factory struct {
 }
 
 type cnf struct {
-	debug  bool
-	dir    string
-	save   int
-	format string
-	name   string
-	opt    *factory
+	outFile bool
+	outStd  bool
+	dir     string
+	save    int
+	format  string
+	name    string
+	skip    int
+	opt     *factory
 }
 
-func (c *cnf) saveMode(debug bool) *factory {
-	c.debug = debug
+func (c *cnf) saveOutFile(open bool) *factory {
+	c.outFile = open
+	return c.opt
+}
+func (c *cnf) saveOutStd(open bool) *factory {
+	c.outStd = open
 	return c.opt
 }
 func (c *cnf) saveDir(logPath string) *factory {
@@ -104,5 +115,9 @@ func (c *cnf) saveFmt(format string) *factory {
 
 func (c *cnf) saveName(name string) *factory {
 	c.name = name
+	return c.opt
+}
+func (c *cnf) saveSkip(skip int) *factory {
+	c.skip = skip
 	return c.opt
 }

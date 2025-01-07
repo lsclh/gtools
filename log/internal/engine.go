@@ -19,9 +19,9 @@ var (
 	pathSep = string(os.PathSeparator)
 )
 
-func NewLog(debug bool, save int, fileName, dir, format string) *LogFile {
+func NewLog(outfile, outstd bool, save int, fileName, dir, format string, skip int) *LogFile {
 	fio := getWriter(fileName, dir, save)
-	z := NewZapLogger(debug, fio, format)
+	z := NewZapLogger(outfile, outstd, fio, format, skip)
 	return &LogFile{
 		fio:  fio,
 		Z:    z,
@@ -95,40 +95,33 @@ func (l *LogFile) Printf(format string, params ...interface{}) {
 }
 
 // NewZapLogger 创建 ZapLogger
-func NewZapLogger(debug bool, f io.Writer, format string) *zap.SugaredLogger {
+func NewZapLogger(outfile, outstd bool, f io.Writer, format string, skip int) *zap.SugaredLogger {
 	// 动态日志等级
 	//文件+控制台
-	var core zapcore.Core
-	if debug {
-		w := zapcore.AddSync(f)
-		if format == "json" {
-			core = zapcore.NewTee(
-				zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel),
-				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zap.DebugLevel),
-			)
-		} else {
-			core = zapcore.NewTee(
-				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel),
-				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zap.DebugLevel),
-			)
-		}
-
-	} else {
-		w := zapcore.AddSync(f)
-		if format == "json" {
-			core = zapcore.NewTee(
-				zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), w, zapcore.InfoLevel),
-			)
-		} else {
-			core = zapcore.NewTee(
-				zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zapcore.InfoLevel),
-			)
-		}
-
+	w := zapcore.AddSync(f)
+	cores := []zapcore.Core{}
+	if !outstd && !outfile {
+		outstd = true
 	}
 
+	if format == "json" {
+		if outstd {
+			cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel))
+		}
+		if outfile {
+			cores = append(cores, zapcore.NewCore(zapcore.NewJSONEncoder(NewEncoderConfig(false)), w, zap.DebugLevel))
+		}
+	} else {
+		if outstd {
+			cores = append(cores, zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(true)), os.Stdout, zap.DebugLevel))
+		}
+		if outfile {
+			cores = append(cores, zapcore.NewCore(zapcore.NewConsoleEncoder(NewEncoderConfig(false)), w, zap.DebugLevel))
+		}
+	}
+	core := zapcore.NewTee(cores...)
 	//向上跳一层 到调用位置
-	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(skip))
 	return logger.Sugar()
 }
 
