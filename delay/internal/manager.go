@@ -257,12 +257,10 @@ func (m *manager) WaitStopTask() {
 // 合并集群其他机器抛出的任务
 func (m *manager) MargeTask() {
 	workerId := m.workerId
-	fmt.Println("合并任务启动", workerId)
 	defer func() {
 		if err := recover(); err != nil {
 			logger.error(fmt.Sprintf("合并集群任务出现异常 %v", err))
 		}
-		fmt.Println("合并任务退出", workerId)
 	}()
 	for {
 
