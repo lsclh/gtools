@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis/v7"
 	"github.com/lsclh/gtools/timer"
 	uuid "github.com/satori/go.uuid"
 	"sync"
@@ -71,6 +72,7 @@ type manager struct {
 	registry  map[string]JobFn //method => fn
 	wait      sync.WaitGroup
 	isMaster  bool
+	workerId  int64
 }
 
 // // task持久化
@@ -95,10 +97,19 @@ func DelayStart() {
 	if TaskManager.isMaster {
 		return
 	}
+	TaskManager.workerId++
 	TaskManager.isMaster = true
 	TaskManager.Setup()
 	go TaskManager.MargeTask()
 	logger.info("节点延时任务处理启动")
+}
+
+func DelayStop() {
+	if !TaskManager.isMaster {
+		return
+	}
+	TaskManager.isMaster = false
+	logger.info("节点延时任务处理停止")
 }
 
 // 注册任务
@@ -245,18 +256,32 @@ func (m *manager) WaitStopTask() {
 
 // 合并集群其他机器抛出的任务
 func (m *manager) MargeTask() {
+	workerId := m.workerId
+	fmt.Println("合并任务启动", workerId)
 	defer func() {
 		if err := recover(); err != nil {
 			logger.error(fmt.Sprintf("合并集群任务出现异常 %v", err))
 		}
+		fmt.Println("合并任务退出", workerId)
 	}()
 	for {
-		res, err := rds.BLPop(time.Second*10, taskAdd)
+
+		res, err := rds.BLPop(time.Second*5, taskAdd)
 		if err != nil {
+			if !errors.Is(err, redis.Nil) {
+				if !m.isMaster || workerId != m.workerId {
+					return
+				}
+				time.Sleep(time.Second * 3)
+			}
 			continue
 		}
 		if len(res) != 2 {
 			continue
+		}
+		if !m.isMaster || workerId != m.workerId {
+			_ = rds.RPush(taskAdd, res[1])
+			return
 		}
 
 		ts := &save{}

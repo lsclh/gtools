@@ -13,6 +13,8 @@ type engine struct {
 	lock         rLock.Mutex
 	startHandler []func()
 	stopHandler  []func()
+	cl           chan struct{}
+	start        bool
 }
 
 var Engine = &engine{
@@ -23,6 +25,10 @@ var Engine = &engine{
 
 // 启动master节点判断
 func (e *engine) Start() {
+	if e.start {
+		return
+	}
+	e.start = true
 	e.lock = rLock.Factory.NewRedisTimeLocker(masterKey, uuid.NewV4().String(), time.Second*11)
 	//从服务器 10秒检测一次
 	go func() {
@@ -30,8 +36,10 @@ func (e *engine) Start() {
 			if err := recover(); err != nil {
 				logger.error("master节点选择出现异常 %v", err)
 			}
+			e.lock.Unlock()
 		}()
 		t := time.NewTicker(time.Second * 10) //从服务器 10秒检测一次
+		e.cl = make(chan struct{})
 		for {
 			if e.lock.TryLock() {
 				if !e.isMaster {
@@ -62,9 +70,21 @@ func (e *engine) Start() {
 					}(fn)
 				}
 			}
-			<-t.C
+			select {
+			case <-t.C:
+			case <-e.cl:
+				t.Stop()
+				close(e.cl)
+				e.start = false
+				return
+			}
 		}
 	}()
+}
+
+func (e *engine) Stop() {
+	e.cl <- struct{}{}
+	time.Sleep(time.Second)
 }
 
 func (e *engine) IsMaster() bool {

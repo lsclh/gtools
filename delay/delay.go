@@ -107,6 +107,10 @@ func (f *engine) Start() {
 	internal.DelayStart()
 }
 
+func (f *engine) Stop() {
+	internal.DelayStop()
+}
+
 // 退出程序是等待当前的运行完成
 func (f *engine) WaitStop() {
 	internal.TaskManager.WaitStopTask()
