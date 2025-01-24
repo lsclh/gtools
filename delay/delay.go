@@ -19,10 +19,9 @@ func New(method string, workerOptions *workerOptions) *internal.Task {
 		return nil
 	}
 	return internal.NewTask(&internal.Options{
-		Name:           workerOptions.cnf.name,
-		Method:         method,
-		Params:         workerOptions.cnf.params,
-		LoadTimeoutRun: workerOptions.cnf.loadTimeoutRun,
+		Name:   workerOptions.cnf.name,
+		Method: method,
+		Params: workerOptions.cnf.params,
 	})
 }
 
@@ -30,7 +29,7 @@ func New(method string, workerOptions *workerOptions) *internal.Task {
 
 // 删除一个任务
 func Del(name string) {
-	internal.TaskManager.DeleteTask(name)
+	internal.TaskManager.EmitDelTask(name)
 }
 
 // **********************************************注册参数**********************************************************
@@ -52,9 +51,8 @@ func (w *workerOptions) clone() *workerOptions {
 	}
 	opt := &workerOptions{
 		cnf: &cnf{
-			name:           "",
-			params:         "",
-			loadTimeoutRun: false,
+			name:   "",
+			params: "",
 		},
 	}
 	opt.cnf.opt = opt
@@ -71,18 +69,10 @@ func (w *workerOptions) WithParams(params any) *workerOptions {
 	return w.clone().cnf.saveParams(params)
 }
 
-// WithLoadTimeoutRun 如果服务因为异常停止
-// 过了一段期间才启动起来 此时次任务过了预定执行时间 是否还要执行 还是丢弃掉
-// 默认执行
-func (w *workerOptions) WithLoadTimeoutRun(run bool) *workerOptions {
-	return w.clone().cnf.saveLoadTimeoutRun(run)
-}
-
 type cnf struct {
-	opt            *workerOptions
-	name           string //任务名称
-	params         string //执行参数
-	loadTimeoutRun bool   //如果因为主机挂掉 重新加载时已超过了执行时间 是否再次执行
+	opt    *workerOptions
+	name   string //任务名称
+	params string //执行参数
 }
 
 func (c *cnf) saveName(name string) *workerOptions {
@@ -92,10 +82,6 @@ func (c *cnf) saveName(name string) *workerOptions {
 
 func (c *cnf) saveParams(params any) *workerOptions {
 	c.params = cast.ToString(params)
-	return c.opt
-}
-func (c *cnf) saveLoadTimeoutRun(run bool) *workerOptions {
-	c.loadTimeoutRun = run
 	return c.opt
 }
 
@@ -109,11 +95,6 @@ func (f *engine) Start() {
 
 func (f *engine) Stop() {
 	internal.DelayStop()
-}
-
-// 退出程序是等待当前的运行完成
-func (f *engine) WaitStop() {
-	internal.TaskManager.WaitStopTask()
 }
 
 // RegLog 注册日志组件
