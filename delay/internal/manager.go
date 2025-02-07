@@ -263,6 +263,7 @@ func (m *manager) runImmediateTask(t *Task) {
 			m.runWorker.Done()
 		}()
 		m.handel.Del(t.name)
+		logger.info("任务运行 %s %s", t.method, t.params)
 		m.registry[t.method](t.params)
 	}()
 }
