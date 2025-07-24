@@ -100,9 +100,9 @@ func mdbInit() *gorm.DB {
 		sql.RegisterDialContext("mysqlssh", func(ctx context.Context, addr string) (net.Conn, error) {
 			return sshcon.Dial("tcp", addr)
 		})
-		link = fmt.Sprintf("%s:%s@mysqlssh(%s)/%s?charset=utf8&parseTime=True&loc=Local", mopt.User, mopt.Pass, mopt.Host, mopt.Dbname)
+		link = fmt.Sprintf("%s:%s@mysqlssh(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local", mopt.User, mopt.Pass, mopt.Host, mopt.Port, mopt.Dbname)
 	} else {
-		link = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", mopt.User, mopt.Pass, mopt.Host, mopt.Dbname)
+		link = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local", mopt.User, mopt.Pass, mopt.Host, mopt.Port, mopt.Dbname)
 	}
 	cnf := &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
