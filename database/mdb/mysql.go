@@ -3,6 +3,11 @@ package mdb
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"os"
+	"time"
+
 	sql "github.com/go-sql-driver/mysql"
 	gLog "github.com/lsclh/gtools/log"
 	"github.com/mattn/go-colorable"
@@ -11,18 +16,7 @@ import (
 	"gorm.io/gorm"
 	ormLogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-	"log"
-	"net"
-	"os"
-	"sync"
-	"time"
 )
-
-var (
-	Db *gorm.DB
-)
-
-var mOnce sync.Once
 
 type MOptions struct {
 	Dbname       string      `json:"dbname"`
@@ -52,10 +46,7 @@ var mopt *MOptions = nil
 
 func NewMDb(o *MOptions) *gorm.DB {
 	mopt = o
-	if Db == nil {
-		return mdbInit()
-	}
-	return Db
+	return mdbInit()
 }
 
 // Setup : Connect to mysql database
@@ -134,16 +125,16 @@ func mdbInit() *gorm.DB {
 		)
 	}
 
-	Db, err = gorm.Open(mysql.Open(link), cnf)
+	db, err := gorm.Open(mysql.Open(link), cnf)
 	if err != nil {
 		panic(fmt.Sprintf("MysqlConnectFail: %s", err.Error()))
 		return nil
 	} else {
-		sqlDB, _ := Db.DB()
+		sqlDB, _ := db.DB()
 		sqlDB.SetMaxIdleConns(mopt.PollMinConns)
 		sqlDB.SetMaxOpenConns(mopt.PollMaxOpen)
 		sqlDB.SetConnMaxLifetime(time.Hour)
 	}
 	gLog.Println("MysqlConnectSuccess")
-	return Db
+	return db
 }
