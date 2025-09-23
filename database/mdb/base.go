@@ -13,8 +13,8 @@ const (
 )
 
 // 获取一个任务对象 并创建添加任务
-func NewDb(opts ...mOptions) *gorm.DB {
-	opt := &MOptions{
+func NewDb(opts ...options) *gorm.DB {
+	opt := &mOptions{
 		PollMinConns: 5,
 		PollMaxOpen:  10,
 	}
@@ -22,15 +22,24 @@ func NewDb(opts ...mOptions) *gorm.DB {
 		fn(opt)
 	}
 
-	return NewMDb(opt)
+	return newMDb(opt)
 }
 
 // **********************************************注册参数**********************************************************
-type mOptions func(e *MOptions)
+type options func(e *mOptions)
 
-// 基础
-func WithBase(host string, port int, user, pwd, dbname string) mOptions {
-	return func(e *MOptions) {
+// 默认使用mysql 注册此函数使用oracle数据库
+func WithOracle(serviceName string) options {
+	return func(e *mOptions) {
+		e.Oracle = &mOptionOracle{
+			ServiceName: serviceName,
+		}
+	}
+}
+
+// WithBase 基础
+func WithBase(host string, port int, user, pwd, dbname string) options {
+	return func(e *mOptions) {
 		e.Host = host
 		e.Port = port
 		e.User = user
@@ -39,28 +48,28 @@ func WithBase(host string, port int, user, pwd, dbname string) mOptions {
 	}
 }
 
-// 链接池配置
-func WithPoll(PollMaxOpen, PollMinConns int) mOptions {
-	return func(e *MOptions) {
+// WithPoll 链接池配置
+func WithPoll(PollMaxOpen, PollMinConns int) options {
+	return func(e *mOptions) {
 		e.PollMinConns = PollMinConns
 		e.PollMaxOpen = PollMaxOpen
 	}
 }
 
-// 日志
-func WithLog(level logger.LogLevel, std logger.Writer) mOptions {
-	return func(e *MOptions) {
-		e.Log = &MOptionLog{
+// WithLog 日志
+func WithLog(level logger.LogLevel, std logger.Writer) options {
+	return func(e *mOptions) {
+		e.Log = &mOptionLog{
 			Level: level,
 			Std:   std,
 		}
 	}
 }
 
-// ssh代理
-func WithSShKey(host, user, publicKey string) mOptions {
-	return func(e *MOptions) {
-		e.Ssh = &MOptionSSH{
+// WithSShKey ssh代理 仅支持mysql数据库
+func WithSShKey(host, user, publicKey string) options {
+	return func(e *mOptions) {
+		e.Ssh = &mOptionSSH{
 			Host:      host,
 			User:      user,
 			Pass:      "",
@@ -69,10 +78,10 @@ func WithSShKey(host, user, publicKey string) mOptions {
 	}
 }
 
-// ssh代理
-func WithSShPwd(host, user, pwd string) mOptions {
-	return func(e *MOptions) {
-		e.Ssh = &MOptionSSH{
+// WithSShPwd ssh代理 仅支持mysql数据库
+func WithSShPwd(host, user, pwd string) options {
+	return func(e *mOptions) {
+		e.Ssh = &mOptionSSH{
 			Host:      host,
 			User:      user,
 			Pass:      pwd,
